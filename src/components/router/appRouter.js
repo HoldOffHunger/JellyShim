@@ -435,14 +435,10 @@ class AppRouter {
                 return url;
             }
 
+            // JellyShim: the music library always opens as plain folders,
+            // never as the album-based Music view.
             if (item.CollectionType == CollectionType.Music) {
-                url = `#/music?topParentId=${item.Id}&collectionType=${item.CollectionType}`;
-
-                if (options?.section === 'latest') {
-                    url += '&tab=1';
-                }
-
-                return url;
+                return '#/list?parentId=' + item.Id + '&serverId=' + serverId;
             }
 
             if (isModernLayout && item.CollectionType == CollectionType.Homevideos) {

@@ -957,6 +957,11 @@ class ItemsView {
                     hideOrShowAll(view.querySelectorAll('.btnShuffle'), true);
                 }
 
+                // JellyShim: every browsed folder below the library root offers Instant Mix
+                const canInstantMix = !!item && item.IsFolder && !params.type
+                    && itemType !== 'UserView' && itemType !== 'CollectionFolder';
+                hideOrShowAll(view.querySelectorAll('.btnInstantMix'), !canInstantMix);
+
                 if (item && playbackManager.canQueue(item)) {
                     // Show Queue button
                     hideOrShowAll(view.querySelectorAll('.btnQueue'), false);
@@ -970,6 +975,11 @@ class ItemsView {
                 bindAll(view.querySelectorAll('.btnPlay'), 'click', play);
                 bindAll(view.querySelectorAll('.btnQueue'), 'click', queue);
                 bindAll(view.querySelectorAll('.btnShuffle'), 'click', shuffle);
+                bindAll(view.querySelectorAll('.btnInstantMix'), 'click', () => {
+                    if (self.currentItem) {
+                        playbackManager.instantMix(self.currentItem);
+                    }
+                });
             }
 
             self.alphaNumericShortcuts = new AlphaNumericShortcuts({

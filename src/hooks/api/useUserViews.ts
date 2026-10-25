@@ -1,4 +1,5 @@
 import type { Api } from '@jellyfin/sdk/lib/api';
+import { CollectionType } from '@jellyfin/sdk/lib/generated-client/models/collection-type';
 import type { UserViewApiGetUserViewsRequest } from '@jellyfin/sdk/lib/generated-client/api/user-view-api';
 import { getUserViewApi } from '@jellyfin/sdk/lib/utils/api/user-view-api';
 import { queryOptions, useQuery } from '@tanstack/react-query';
@@ -13,7 +14,11 @@ const fetchUserViews = async (
 ) => {
     const response = await getUserViewApi(api)
         .getUserViews(params, options);
-    return response.data;
+
+    // JellyShim: music is browsed through Folders only, so the album-based
+    // Music view is left out of every menu, toolbar and home section.
+    const items = (response.data.Items || []).filter(view => view.CollectionType !== CollectionType.Music);
+    return { ...response.data, Items: items, TotalRecordCount: items.length };
 };
 
 export const getUserViewsQuery = (

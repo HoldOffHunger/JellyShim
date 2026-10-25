@@ -113,7 +113,8 @@ export async function getCommands(options) {
         });
     }
 
-    if ((item.MediaType === 'Audio' || item.Type === 'MusicAlbum' || item.Type === 'MusicArtist' || item.Type === 'MusicGenre')
+    // JellyShim: plain folders (genre and band folders) offer Instant Mix too
+    if ((item.MediaType === 'Audio' || item.Type === 'MusicAlbum' || item.Type === 'MusicArtist' || item.Type === 'MusicGenre' || item.Type === 'Folder')
             && options.instantMix !== false && !itemHelper.isLocalItem(item)
     ) {
         commands.push({
