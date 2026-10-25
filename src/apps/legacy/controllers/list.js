@@ -521,6 +521,25 @@ class ItemsView {
         function getItemsHtml(items) {
             const settings = self.getViewSettings();
 
+            // JellyShim: a folder that holds only songs opens as a track list
+            // (playlist mode); clicking a track plays from there onwards.
+            const isSongsOnlyFolder = params.parentId && !params.type && items.length
+                && items.every(i => !i.IsFolder && i.MediaType === 'Audio');
+            self.itemsContainer.classList.toggle('vertical-list', isSongsOnlyFolder || settings.imageType === 'list');
+            self.itemsContainer.classList.toggle('vertical-wrap', !isSongsOnlyFolder && settings.imageType !== 'list');
+
+            if (isSongsOnlyFolder) {
+                return listView.getListViewHtml({
+                    items: items,
+                    smallIcon: true,
+                    showIndexNumberLeft: true,
+                    playFromHere: true,
+                    action: 'playallfromhere',
+                    image: false,
+                    artist: true
+                });
+            }
+
             if (settings.imageType === 'list') {
                 return listView.getListViewHtml({
                     items: items
@@ -626,7 +645,9 @@ class ItemsView {
             posterOptions.lines = lines;
             posterOptions.items = items;
 
-            if (item && item.CollectionType === CollectionType.Folders) {
+            // JellyShim: plain folder browsing (a parent folder, no type filter) keeps
+            // the folders context so child folders open as folder listings.
+            if (item && (item.CollectionType === CollectionType.Folders || (params.parentId && !params.type))) {
                 posterOptions.context = 'folders';
             }
 

@@ -477,6 +477,13 @@ class AppRouter {
             }
         }
 
+        // JellyShim: when browsing folders, a folder Jellyfin has classed as an artist
+        // (e.g. a genre folder full of album folders) opens as a folder listing,
+        // not as an artist page.
+        if (context === 'folders' && itemType === 'MusicArtist' && id) {
+            return '#/list?parentId=' + id + '&serverId=' + serverId;
+        }
+
         const itemTypes = ['Playlist', 'TvChannel', 'Program', 'BoxSet', 'MusicAlbum', 'MusicGenre', 'Person', 'Recording', 'MusicArtist'];
 
         if (itemTypes.indexOf(itemType) >= 0) {
