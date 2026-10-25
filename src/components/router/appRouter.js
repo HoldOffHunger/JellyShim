@@ -477,10 +477,11 @@ class AppRouter {
             }
         }
 
-        // JellyShim: when browsing folders, a folder Jellyfin has classed as an artist
-        // (e.g. a genre folder full of album folders) opens as a folder listing,
-        // not as an artist page.
-        if (context === 'folders' && itemType === 'MusicArtist' && id) {
+        // JellyShim: when browsing folders, folders Jellyfin has classed as an artist
+        // or album open as a folder listing, like Explorer. The listing shows
+        // subfolders (e.g. Disk 1, Disk 2) as folders, and switches to a track
+        // list when the folder holds only songs.
+        if (context === 'folders' && (itemType === 'MusicArtist' || itemType === 'MusicAlbum') && id) {
             return '#/list?parentId=' + id + '&serverId=' + serverId;
         }
 

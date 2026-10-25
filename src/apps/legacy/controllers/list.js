@@ -342,7 +342,27 @@ function getItems(instance, params, item, sortBy, startIndex, limit) {
         query.Recursive = true;
     }
 
-    return apiClient.getItems(apiClient.getCurrentUserId(), modifyQueryWithFilters(instance, query));
+    // JellyShim: the server returns an album's songs flattened, even when they
+    // sit in Disk 1 / Disk 2 subfolders, and untagged discs then interleave
+    // (Track 1, Track 1, Track 2...). Fetch the whole album and order it by
+    // folder and filename, as Explorer would.
+    const isAlbumInFolderBrowse = item.Type === 'MusicAlbum' && !params.type && sortBy !== 'Random';
+    if (isAlbumInFolderBrowse) {
+        query.StartIndex = 0;
+        query.Limit = 5000;
+    }
+
+    const request = apiClient.getItems(apiClient.getCurrentUserId(), modifyQueryWithFilters(instance, query));
+
+    if (!isAlbumInFolderBrowse) {
+        return request;
+    }
+
+    return request.then(result => {
+        const collator = new Intl.Collator(undefined, { numeric: true, sensitivity: 'base' });
+        result.Items.sort((a, b) => collator.compare(a.Path || '', b.Path || ''));
+        return result;
+    });
 }
 
 function getItem(params) {
