@@ -433,7 +433,7 @@ function getCardFooterText(item, apiClient, options, footerClass, progressHtml, 
             Type: item.Type,
             CollectionType: item.CollectionType,
             IsFolder: item.IsFolder
-        }));
+        }, undefined, undefined, options.context));
     }
 
     if (showOtherText) {
@@ -614,7 +614,7 @@ function getCardFooterText(item, apiClient, options, footerClass, progressHtml, 
  * @param {string} serverId - ID of the server.
  * @returns {string} HTML markup of the action button.
  */
-function getTextActionButton(item, text, serverId) {
+function getTextActionButton(item, text, serverId, context) {
     if (!text) {
         text = itemHelper.getDisplayName(item);
     }
@@ -625,8 +625,9 @@ function getTextActionButton(item, text, serverId) {
         return text;
     }
 
-    const url = appRouter.getRouteUrl(item);
-    let html = '<a href="' + url + '" ' + itemShortcuts.getShortcutAttributesHtml(item, serverId) + ' class="itemAction textActionButton" title="' + text + `" data-action="${ItemAction.Link}">`;
+    const url = appRouter.getRouteUrl(item, { context });
+    const contextAttribute = context ? ` data-context="${context}"` : '';
+    let html = '<a href="' + url + '" ' + itemShortcuts.getShortcutAttributesHtml(item, serverId) + contextAttribute + ' class="itemAction textActionButton" title="' + text + `" data-action="${ItemAction.Link}">`;
     html += text;
     html += '</a>';
 
@@ -982,7 +983,7 @@ function buildCard(index, item, apiClient, options) {
     let additionalCardContent = '';
 
     if (layoutManager.desktop && !options.disableHoverMenu) {
-        additionalCardContent += getHoverMenuHtml(item, action);
+        additionalCardContent += getHoverMenuHtml(item, action, options);
     }
 
     return '<' + tagName + ' data-index="' + index + '"' + timerAttributes + actionAttribute + ' data-isfolder="' + (item.IsFolder || false) + '" data-serverid="' + (item.ServerId || options.serverId) + '" data-id="' + (item.Id || item.ItemId) + '" data-type="' + item.Type + '"' + mediaTypeData + collectionTypeData + channelIdData + pathData + positionTicksData + collectionIdData + playlistIdData + contextData + parentIdData + startDate + endDate + ' data-prefix="' + escapeHtml(prefix) + '" class="' + className + '"' + ariaLabelAttribute + '>' + cardImageContainerOpen + innerCardFooter + cardImageContainerClose + overlayButtons + additionalCardContent + cardScalableClose + outerCardFooter + cardBoxClose + '</' + tagName + '>';
@@ -994,18 +995,27 @@ function buildCard(index, item, apiClient, options) {
  * @param {string} action - Action assigned to the overlay.
  * @returns {string} HTML markup of the card overlay.
  */
-function getHoverMenuHtml(item, action) {
+function getHoverMenuHtml(item, action, options = {}) {
     let html = '';
 
     html += '<div class="cardOverlayContainer itemAction" data-action="' + action + '">';
 
     const btnCssClass = 'cardOverlayButton cardOverlayButton-hover itemAction paper-icon-button-light';
 
-    if (playbackManager.canPlay(item)) {
+    // JellyShim: while browsing folders, a click in the middle of a folder card
+    // opens it; Play moves to a small button in the corner instead.
+    const isBrowsedFolder = options.context === 'folders' && item.IsFolder;
+    const canPlay = playbackManager.canPlay(item);
+
+    if (canPlay && !isBrowsedFolder) {
         html += `<button is="paper-icon-button-light" class="${btnCssClass} cardOverlayFab-primary" data-action="${ItemAction.Resume}" title="${globalize.translate('Play')}"><span class="material-icons cardOverlayButtonIcon cardOverlayButtonIcon-hover play_arrow" aria-hidden="true"></span></button>`;
     }
 
     html += '<div class="cardOverlayButton-br flex">';
+
+    if (canPlay && isBrowsedFolder) {
+        html += `<button is="paper-icon-button-light" class="${btnCssClass}" data-action="${ItemAction.Play}" title="${globalize.translate('Play')}"><span class="material-icons cardOverlayButtonIcon cardOverlayButtonIcon-hover play_arrow" aria-hidden="true"></span></button>`;
+    }
 
     const userData = item.UserData || {};
 
