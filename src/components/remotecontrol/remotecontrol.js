@@ -282,6 +282,8 @@ export default function () {
 
         buttonVisible(context.querySelector('.btnLyrics'), item?.Type === 'Audio' && !layoutManager.mobile);
         buttonVisible(context.querySelector('.btnStop'), item != null);
+        // JellyShim: "keep playing songs like this one" while music plays
+        buttonVisible(context.querySelector('.btnPlaySimilar'), item?.MediaType === 'Audio' && item.Type !== 'AudioBook');
         buttonVisible(context.querySelector('.btnNextTrack'), item != null);
         buttonVisible(context.querySelector('.btnPreviousTrack'), item != null);
         if (layoutManager.mobile) {
@@ -735,6 +737,8 @@ export default function () {
             appRouter.show('lyrics');
         });
 
+        context.querySelector('.btnPlaySimilar').addEventListener('click', playSimilarNext);
+
         for (const shuffleButton of context.querySelectorAll('.btnShuffleQueue')) {
             shuffleButton.addEventListener('click', function () {
                 if (currentPlayer) {
@@ -919,6 +923,34 @@ export default function () {
     let dlg;
     let currentPlayer;
     let lastPlayerState;
+
+    /**
+     * JellyShim: queues an Instant Mix of the playing song right after it, so
+     * similar songs keep coming without interrupting the current one.
+     */
+    function playSimilarNext() {
+        const item = lastPlayerState?.NowPlayingItem;
+        if (!currentPlayer || !item) return;
+
+        const apiClient = ServerConnections.getApiClient(item.ServerId);
+        apiClient.getInstantMixFromItem(item.Id, {
+            UserId: apiClient.getCurrentUserId(),
+            Limit: 50
+        }).then(result => {
+            const items = (result.Items || []).filter(mixItem => mixItem.Id !== item.Id);
+            if (!items.length) {
+                toast(globalize.translate('NoSimilarSongsFound'));
+                return;
+            }
+
+            return playbackManager.queueNext({ items }, currentPlayer).then(() => {
+                toast(globalize.translate('SimilarSongsQueued', items.length));
+            });
+        }).catch(err => {
+            console.error('Failed to queue similar songs', err);
+            toast(globalize.translate('NoSimilarSongsFound'));
+        });
+    }
     let currentPlayerSupportedCommands = [];
     let lastUpdateTime = 0;
     let currentRuntimeTicks = 0;
