@@ -18,6 +18,7 @@ import layoutManager from '../layoutManager';
 import * as userSettings from '../../scripts/settings/userSettings';
 import itemContextMenu from '../itemContextMenu';
 import toast from '../toast/toast';
+import { getFolderMix } from '../playback/folderMix';
 import { appRouter } from '../router/appRouter';
 import { getDefaultBackgroundClass } from '../cardbuilder/utils/builder';
 
@@ -932,12 +933,15 @@ export default function () {
         const item = lastPlayerState?.NowPlayingItem;
         if (!currentPlayer || !item) return;
 
-        const apiClient = ServerConnections.getApiClient(item.ServerId);
-        apiClient.getInstantMixFromItem(item.Id, {
-            UserId: apiClient.getCurrentUserId(),
-            Limit: 50
-        }).then(result => {
-            const items = (result.Items || []).filter(mixItem => mixItem.Id !== item.Id);
+        getFolderMix(item, 50).then(mix => {
+            if (mix) return mix;
+            const apiClient = ServerConnections.getApiClient(item.ServerId);
+            return apiClient.getInstantMixFromItem(item.Id, {
+                UserId: apiClient.getCurrentUserId(),
+                Limit: 50
+            }).then(result => result.Items || []);
+        }).then(mix => {
+            const items = mix.filter(mixItem => mixItem.Id !== item.Id);
             if (!items.length) {
                 toast(globalize.translate('NoSimilarSongsFound'));
                 return;

@@ -35,6 +35,7 @@ import { OutboundWebSocketMessageType } from '@jellyfin/sdk/lib/websocket';
 import { MediaError } from 'types/mediaError';
 import { getMediaError } from 'utils/mediaError';
 import { bindSkipSegment } from './skipsegment.ts';
+import { getFolderMix } from './folderMix';
 import * as bitrateTest from 'utils/bitrateTest';
 
 const UNLIMITED_ITEMS = -1;
@@ -4149,9 +4150,13 @@ export class PlaybackManager {
 
         const instance = this;
 
-        apiClient.getInstantMixFromItem(item.Id, options).then(function (result) {
+        // JellyShim: songs and folders mix from their style and band folders, not genre tags
+        return getFolderMix(item, options.Limit).then(function (items) {
+            if (items) return items;
+            return apiClient.getInstantMixFromItem(item.Id, options).then(result => result.Items);
+        }).then(function (items) {
             instance.play({
-                items: result.Items
+                items
             });
         });
     }
