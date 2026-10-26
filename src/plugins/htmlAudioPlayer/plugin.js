@@ -367,6 +367,7 @@ class HtmlAudioPlayer {
         }
 
         function onPlaying(e) {
+            self._retriedSrc = null;
             if (!self._started) {
                 self._started = true;
                 this.removeAttribute('controls');
@@ -392,6 +393,13 @@ class HtmlAudioPlayer {
             const errorCode = this.error ? (this.error.code || 0) : 0;
             const errorMessage = this.error ? (this.error.message || '') : '';
             console.error('media element error: ' + errorCode.toString() + ' ' + errorMessage);
+
+            // JellyShim: a dropped connection (common through a tunnel, or a phone
+            // switching networks) can fail a song's stream. Try it once more from
+            // the same spot before treating the song as unplayable.
+            if ((errorCode === 2 || errorCode === 4) && !self._hlsPlayer && self.reloadCurrentSrc()) {
+                return;
+            }
 
             let type;
 
@@ -520,9 +528,38 @@ class HtmlAudioPlayer {
         this.unpause();
     }
 
+    /**
+     * JellyShim: reloads the song's stream at the position it reached. Used once
+     * per song after a stream error, so a failed song can't loop forever.
+     * @returns {boolean} Whether a reload was started.
+     */
+    reloadCurrentSrc() {
+        const mediaElement = this._mediaElement;
+        const src = this._currentSrc;
+        if (!mediaElement || !src || this._retriedSrc === src) return false;
+
+        this._retriedSrc = src;
+        const position = mediaElement.currentTime || this._currentTime || 0;
+        console.warn('Reloading the stream after an error, at ' + position + 's');
+        mediaElement.src = src;
+        mediaElement.load();
+        if (position) {
+            mediaElement.currentTime = position;
+        }
+        mediaElement.play().catch(err => console.error('Reloaded stream did not play', err));
+        return true;
+    }
+
     unpause() {
         const mediaElement = this._mediaElement;
         if (mediaElement) {
+            // JellyShim: a stream that failed leaves the element with nothing to
+            // play, so Play would do nothing at all. Reload it instead.
+            if (mediaElement.error && this._currentSrc) {
+                this._retriedSrc = null;
+                this.reloadCurrentSrc();
+                return;
+            }
             mediaElement.play();
         }
     }
