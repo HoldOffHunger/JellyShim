@@ -539,7 +539,7 @@ class HtmlAudioPlayer {
         if (!mediaElement || !src || this._retriedSrc === src) return false;
 
         this._retriedSrc = src;
-        const position = mediaElement.currentTime || this._currentTime || 0;
+        const position = this._currentTime || mediaElement.currentTime || 0;
         console.warn('Reloading the stream after an error, at ' + position + 's');
         mediaElement.src = src;
         mediaElement.load();
