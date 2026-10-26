@@ -224,6 +224,19 @@ export class UserSettings {
     }
 
     /**
+     * Get or set 'Music Visualizer' state (JellyShim). Off unless turned on.
+     * @param {boolean|undefined} [val] - Flag to enable 'Music Visualizer' or undefined.
+     * @return {boolean} 'Music Visualizer' state.
+     */
+    enableMusicVisualizer(val) {
+        if (val !== undefined) {
+            return this.set('enableMusicVisualizer', val.toString(), false);
+        }
+
+        return toBoolean(this.get('enableMusicVisualizer', false), false);
+    }
+
+    /**
      * Get or set 'Next Video Info Overlay' state.
      * @param {boolean|undefined} [val] - Flag to enable 'Next Video Info Overlay' or undefined.
      * @return {boolean} 'Next Video Info Overlay' state.
@@ -731,6 +744,7 @@ export const limitSegmentLength = currentSettings.limitSegmentLength.bind(curren
 export const enableCinemaMode = currentSettings.enableCinemaMode.bind(currentSettings);
 export const selectAudioNormalization = currentSettings.selectAudioNormalization.bind(currentSettings);
 export const enableNextVideoInfoOverlay = currentSettings.enableNextVideoInfoOverlay.bind(currentSettings);
+export const enableMusicVisualizer = currentSettings.enableMusicVisualizer.bind(currentSettings);
 export const enableVideoRemainingTime = currentSettings.enableVideoRemainingTime.bind(currentSettings);
 export const enableThemeSongs = currentSettings.enableThemeSongs.bind(currentSettings);
 export const enableThemeVideos = currentSettings.enableThemeVideos.bind(currentSettings);

@@ -311,11 +311,35 @@ class HtmlAudioPlayer {
                 source.connect(gainNode);
                 gainNode.connect(audioCtx.destination);
 
+                self.audioContext = audioCtx;
                 self.gainNode = gainNode;
             } catch (e) {
                 console.error('Web Audio API is not supported in this browser', e);
             }
         }
+
+        /**
+         * JellyShim: hands the music visualizer the Web Audio graph this player
+         * plays through, building it (at unity gain) if normalization has not.
+         * @returns {{context: AudioContext, node: AudioNode}|null} The graph, or null where Web Audio cannot be used.
+         */
+        self.getAudioGraph = function () {
+            if (browser.iOS) {
+                // createMediaElementSource breaks playbackRate and pitch on iOS WebKit
+                return null;
+            }
+
+            if (!self.gainNode) {
+                addGainElement(createMediaElement());
+                if (!self.gainNode) return null;
+            }
+
+            if (self.audioContext.state === 'suspended') {
+                self.audioContext.resume().catch(err => console.warn('Could not resume AudioContext', err));
+            }
+
+            return { context: self.audioContext, node: self.gainNode };
+        };
 
         function onEnded() {
             htmlMediaHelper.onEndedInternal(self, this, onError);
