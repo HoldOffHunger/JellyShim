@@ -933,6 +933,7 @@ export default function () {
         const item = lastPlayerState?.NowPlayingItem;
         if (!currentPlayer || !item) return;
 
+        toast(globalize.translate('FindingSimilarSongs'));
         getFolderMix(item, 50).then(mix => {
             if (mix) return mix;
             const apiClient = ServerConnections.getApiClient(item.ServerId);

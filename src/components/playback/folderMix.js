@@ -17,7 +17,8 @@ function getRandomSongs(apiClient, parentId, limit) {
         IncludeItemTypes: 'Audio',
         SortBy: 'Random',
         Limit: limit,
-        Fields: 'MediaSources,Chapters'
+        // Recursive random queries take seconds on a large library; skipping the count saves a few
+        EnableTotalRecordCount: false
     }).then(result => result.Items || []);
 }
 

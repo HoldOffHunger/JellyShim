@@ -4151,14 +4151,15 @@ export class PlaybackManager {
         const instance = this;
 
         // JellyShim: songs and folders mix from their style and band folders, not genre tags
+        loading.show();
         return getFolderMix(item, options.Limit).then(function (items) {
             if (items) return items;
             return apiClient.getInstantMixFromItem(item.Id, options).then(result => result.Items);
         }).then(function (items) {
-            instance.play({
+            return instance.play({
                 items
             });
-        });
+        }).finally(() => loading.hide());
     }
 
     shuffle(shuffleItem, player = this._currentPlayer) {

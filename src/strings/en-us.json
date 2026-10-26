@@ -613,6 +613,7 @@
     "InstallingPackage": "Installing {0} (version {1})",
     "InstantMix": "Instant mix",
     "KeepPlayingSimilar": "Keep playing songs like this one",
+    "FindingSimilarSongs": "Finding similar songs…",
     "NoSimilarSongsFound": "No similar songs found",
     "SimilarSongsQueued": "Added {0} similar songs after this one",
     "ItemCount": "{0} items",
