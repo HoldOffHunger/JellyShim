@@ -87,6 +87,24 @@ function enableHlsPlayer(url, item, mediaSource, mediaType) {
     });
 }
 
+/**
+ * JellyShim: the same song as plain MP3 converted by the server, for files the
+ * browser can't open itself. Only direct streams from the universal endpoint
+ * can be converted this way.
+ * @param {string} src - The song's stream URL.
+ * @returns {string|null} The converted stream's URL, or null.
+ */
+function getConvertedUrl(src) {
+    if (!src?.includes('/universal') || src.includes('TranscodingProtocol=http')) return null;
+
+    const converted = new URL(src);
+    converted.searchParams.set('Container', 'aiff'); // a format the library doesn't use, so direct play is refused
+    converted.searchParams.set('TranscodingContainer', 'mp3');
+    converted.searchParams.set('TranscodingProtocol', 'http');
+    converted.searchParams.set('AudioCodec', 'mp3');
+    return converted.toString();
+}
+
 class HtmlAudioPlayer {
     constructor() {
         const self = this;
@@ -207,7 +225,18 @@ class HtmlAudioPlayer {
                 return htmlMediaHelper.applySrc(elem, val, options).then(function () {
                     self._currentSrc = val;
 
-                    return htmlMediaHelper.playWithPromise(elem, onError);
+                    return htmlMediaHelper.playWithPromise(elem, onError).catch(function (err) {
+                        // JellyShim: some MP3s have junk before their first frame, which
+                        // browsers refuse to open; the server's converted copy plays fine
+                        const converted = getConvertedUrl(val);
+                        if (err?.name !== 'NotSupportedError' || !converted) throw err;
+
+                        console.warn('The browser cannot open this file; playing a converted copy');
+                        return htmlMediaHelper.applySrc(elem, converted, options).then(function () {
+                            self._currentSrc = converted;
+                            return htmlMediaHelper.playWithPromise(elem, onError);
+                        });
+                    });
                 });
             });
         }
@@ -548,13 +577,8 @@ class HtmlAudioPlayer {
 
         let url = src;
         if (recovery.attempts === 2) {
-            if (!src.includes('/universal')) return false;
-            const converted = new URL(src);
-            converted.searchParams.set('Container', 'aiff'); // a format the library doesn't use, so direct play is refused
-            converted.searchParams.set('TranscodingContainer', 'mp3');
-            converted.searchParams.set('TranscodingProtocol', 'http');
-            converted.searchParams.set('AudioCodec', 'mp3');
-            url = converted.toString();
+            url = getConvertedUrl(src);
+            if (!url) return false;
         }
 
         const position = this._currentTime || mediaElement.currentTime || 0;
