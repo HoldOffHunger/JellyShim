@@ -1,3 +1,10 @@
+<p align="center">
+<picture>
+<source media="(prefers-color-scheme: dark)" srcset="src/assets/branding/banner-light.png">
+<img alt="JellyShim" src="src/assets/branding/banner-dark.png" width="520">
+</picture>
+</p>
+
 <h1 align="center">JellyShim</h1>
 <h3 align="center">A folder-first web client for <a href="https://jellyfin.org">Jellyfin</a> music libraries</h3>
 
