@@ -367,7 +367,7 @@ class HtmlAudioPlayer {
         }
 
         function onPlaying(e) {
-            self._retriedSrc = null;
+            self._recovery = null;
             if (!self._started) {
                 self._started = true;
                 this.removeAttribute('controls');
@@ -395,9 +395,10 @@ class HtmlAudioPlayer {
             console.error('media element error: ' + errorCode.toString() + ' ' + errorMessage);
 
             // JellyShim: a dropped connection (common through a tunnel, or a phone
-            // switching networks) can fail a song's stream. Try it once more from
-            // the same spot before treating the song as unplayable.
-            if ((errorCode === 2 || errorCode === 4) && !self._hlsPlayer && self.reloadCurrentSrc()) {
+            // switching networks) can fail a song's stream, and some MP3s have
+            // junk before their first frame that browsers refuse to open. Retry
+            // once, then have the server convert the song, before giving up on it.
+            if ((errorCode === 2 || errorCode === 4) && !self._hlsPlayer && self.recoverStream()) {
                 return;
             }
 
@@ -529,24 +530,41 @@ class HtmlAudioPlayer {
     }
 
     /**
-     * JellyShim: reloads the song's stream at the position it reached. Used once
-     * per song after a stream error, so a failed song can't loop forever.
-     * @returns {boolean} Whether a reload was started.
+     * JellyShim: recovers a song whose stream failed, at the position it reached.
+     * The first failure reloads the same stream; the second asks the server to
+     * convert the song to plain MP3, which also cleans up files browsers can't
+     * open. A third failure is left to the normal error handling.
+     * @returns {boolean} Whether a recovery was started.
      */
-    reloadCurrentSrc() {
+    recoverStream() {
         const mediaElement = this._mediaElement;
         const src = this._currentSrc;
-        if (!mediaElement || !src || this._retriedSrc === src) return false;
+        if (!mediaElement || !src) return false;
 
-        this._retriedSrc = src;
+        const recovery = this._recovery?.src === src ? this._recovery : { src, attempts: 0 };
+        if (recovery.attempts >= 2) return false;
+        recovery.attempts++;
+        this._recovery = recovery;
+
+        let url = src;
+        if (recovery.attempts === 2) {
+            if (!src.includes('/universal')) return false;
+            const converted = new URL(src);
+            converted.searchParams.set('Container', 'aiff'); // a format the library doesn't use, so direct play is refused
+            converted.searchParams.set('TranscodingContainer', 'mp3');
+            converted.searchParams.set('TranscodingProtocol', 'http');
+            converted.searchParams.set('AudioCodec', 'mp3');
+            url = converted.toString();
+        }
+
         const position = this._currentTime || mediaElement.currentTime || 0;
-        console.warn('Reloading the stream after an error, at ' + position + 's');
-        mediaElement.src = src;
+        console.warn('Recovering a failed stream (attempt ' + recovery.attempts + ') at ' + position + 's');
+        mediaElement.src = url;
         mediaElement.load();
         if (position) {
             mediaElement.currentTime = position;
         }
-        mediaElement.play().catch(err => console.error('Reloaded stream did not play', err));
+        mediaElement.play().catch(err => console.error('Recovered stream did not play', err));
         return true;
     }
 
@@ -556,8 +574,8 @@ class HtmlAudioPlayer {
             // JellyShim: a stream that failed leaves the element with nothing to
             // play, so Play would do nothing at all. Reload it instead.
             if (mediaElement.error && this._currentSrc) {
-                this._retriedSrc = null;
-                this.reloadCurrentSrc();
+                this._recovery = null;
+                this.recoverStream();
                 return;
             }
             mediaElement.play();
