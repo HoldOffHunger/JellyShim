@@ -13,6 +13,8 @@ import appSettings from './settings/appSettings';
  */
 const KeyNames = {
     13: 'Enter',
+    // Pause (Tizen/WebOS remotes), dropped in 12.0; upstream jellyfin-web#8501
+    19: 'Pause',
     27: 'Escape',
     37: 'ArrowLeft',
     38: 'ArrowUp',
